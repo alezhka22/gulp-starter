@@ -1,89 +1,34 @@
-const gulp = require('gulp')
-const less = require('gulp-less')
-const rename = require('gulp-rename')
-const cleanCSS = require('gulp-clean-css')
-const babel = require('gulp-babel')
-const uglify = require('gulp-uglify')
-const concat = require('gulp-concat')
-/*
-const imagemin = require('gulp-imagemin')
-*/
-const sourcemaps = require('gulp-sourcemaps')
-const autoprefixer = require('gulp-autoprefixer')
-const del = require('del')
+//main module
+import gulp from "gulp";
+//paths import
+import { path } from "./gulp/config/path.js";
+//import common plugins
+import { plugins } from "./gulp/config/plugins.js";
 
-const paths = {
-	styles: {
-		src: 'src/styles/**/*.less',
-		dest: 'dist/css'
-	},
-	scripts: {
-		src: 'src/scripts/**/*.js',
-		dest: 'dist/js'
-	},
-	/*
-		images: {
-			src: 'src/img/*',
-			dest: 'dist/img'
-		} 
-*/
+//pass value into global var
+global.app = {
+	path: path,
+	gulp: gulp,
+	plugins: plugins,
 }
 
-function clean() {
-	return del(['dist'])
+//import of tasks
+import { copy } from "./gulp/tasks/copy.js";
+import { reset } from "./gulp/tasks/reset.js";
+import { html } from "./gulp/tasks/html.js";
+
+//watcher
+function watcher() {
+	gulp.watch(path.watch.files, copy);
+	gulp.watch(path.watch.html, html);
+
 }
 
-function styles() {
-	return gulp.src(paths.styles.src)
-		.pipe(sourcemaps.init())
-		.pipe(less())
-		.pipe(autoprefixer({
-			cascade: false
-		}))
-		.pipe(cleanCSS({
-			level: 2
-		}))
-		.pipe(rename({
-			basename: 'main',
-			suffix: '.min'
-		}))
-		.pipe(sourcemaps.write('.'))
-		.pipe(gulp.dest(paths.styles.dest))
-}
+const mainTasks = gulp.parallel(copy, html);
 
-function scripts() {
-	return gulp.src(paths.scripts.src)
-		.pipe(sourcemaps.init())
-		.pipe(babel({
-			presets: ['@babel/env']
-		}))
-		.pipe(uglify())
-		.pipe(concat('main.min.js'))
-		.pipe(sourcemaps.write('.'))
-		.pipe(gulp.dest(paths.scripts.dest))
-}
+//ordering scenarios for running tasks
+const dev = gulp.series(reset, mainTasks, watcher);
 
-/*
-function img() {
-	gulp.src(paths.images.src)
-		.pipe(imagemin())
-		.pipe(gulp.dest(paths.images.dest))
-}
-*/
 
-function watch() {
-	gulp.watch(paths.styles.src, styles)
-	gulp.watch(paths.scripts.src, scripts)
-}
-
-const build = gulp.series(clean, gulp.parallel(styles, scripts,/*img*/), watch)
-
-exports.clean = clean
-/*
-exports.img = img
-*/
-exports.styles = styles
-exports.scripts = scripts
-exports.watch = watch
-exports.bulid = build
-exports.default = build
+//default sceenario
+gulp.task('default', dev);
